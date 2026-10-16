@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block body %}<div class="auth cardx p-4">
+<h3 class="fw-bold" style="color:var(--brand)">CampusFind</h3><p class="text-muted">Lost something? Let's find it.</p>
+<form method="post"><label class="form-label">College email</label><input class="form-control mb-3" type="email" name="email" required>
+<label class="form-label">Password</label><input class="form-control mb-3" type="password" name="password" required>
+<button class="btn btn-brand w-100">Sign in</button></form>
+<p class="small mt-3 mb-0">New student? <a href="{{ url_for('register') }}">Create an account</a></p></div>{% endblock %}

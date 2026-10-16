@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% block body %}<h3 class="fw-bold">Report a {{ kind }} item</h3>
+<p class="text-muted">{{ 'Tell us what you lost and where you last saw it.' if kind=='lost' else 'Help return a belonging to its owner.' }} An admin reviews every report before it goes live.</p>
+<form method="post" enctype="multipart/form-data" class="cardx" style="max-width:720px"><div class="row g-3">
+<div class="col-md-6"><label class="form-label">Item name *</label><input class="form-control" name="name" required></div>
+<div class="col-md-6"><label class="form-label">Category *</label><select class="form-select" name="category" required>{% for c in cats %}<option>{{ c }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label">Colour</label><input class="form-control" name="color"></div>
+<div class="col-md-6"><label class="form-label">Campus location *</label><select class="form-select" name="location" required>{% for c in locs %}<option>{{ c }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label class="form-label">Date {{ kind }} *</label><input class="form-control" type="date" name="date" required></div>
+<div class="col-md-6"><label class="form-label">Photo (JPG/PNG, max 4 MB)</label><input class="form-control" type="file" name="image" accept="image/*"></div>
+<div class="col-12"><label class="form-label">Description *</label><textarea class="form-control" name="description" rows="3" required></textarea>
+{% if kind=='found' %}<div class="form-text">Don't include hidden identifying details; the owner proves them when claiming.</div>{% endif %}</div></div>
+<button class="btn btn-brand mt-3">Submit report</button></form>{% endblock %}

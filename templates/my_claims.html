@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block body %}<h3 class="fw-bold">My Claims</h3><p class="text-muted">Track your requests to recover found belongings.</p>
+<div class="cardx table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Item</th><th>Case ID</th><th>Submitted</th><th>Status</th><th>Admin note</th></tr></thead><tbody>
+{% for r in rows %}<tr><td><a href="{{ url_for('item', iid=r.item_id) }}">{{ r.name }}</a></td><td>{{ r.case_id }}</td><td>{{ r.created_at }}</td><td><span class="badge text-bg-{{ r.status|badge }}">{{ r.status }}</span></td><td>{{ r.admin_note or '-' }}</td></tr>
+{% else %}<tr><td colspan="5" class="text-center text-muted py-4">No claims yet. Browse found items to claim yours.</td></tr>{% endfor %}</tbody></table></div>{% endblock %}

@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% block body %}<div class="auth cardx p-4"><h4 class="fw-bold">Create your account</h4>
+<p class="text-muted small">Only @{{ domain }} college emails are accepted.</p>
+<form method="post"><label class="form-label">Full name</label><input class="form-control mb-3" name="name" required>
+<label class="form-label">College email</label><input class="form-control mb-3" type="email" name="email" required>
+<label class="form-label">Password</label><input class="form-control mb-3" type="password" name="password" minlength="6" required>
+<button class="btn btn-brand w-100">Register</button></form>
+<p class="small mt-3 mb-0">Already registered? <a href="{{ url_for('login') }}">Sign in</a></p></div>{% endblock %}

@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block body %}<h3 class="fw-bold">My Reports</h3><p class="text-muted">Track your submitted reports.</p>
+<div class="cardx table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Case ID</th><th>Item</th><th>Type</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ r.case_id }}</td><td>{{ r.name }}</td><td>{{ r.type|capitalize }}</td><td>{{ r.created_at }}</td><td><span class="badge text-bg-{{ r.status|badge }}">{{ r.status }}</span></td><td><a href="{{ url_for('item', iid=r.id) }}">View</a></td></tr>
+{% else %}<tr><td colspan="6" class="text-center text-muted py-4">No reports yet. <a href="{{ url_for('report', kind='lost') }}">Report a lost item</a></td></tr>{% endfor %}</tbody></table></div>{% endblock %}

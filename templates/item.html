@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block body %}
+<div class="d-flex gap-2 align-items-center mb-3"><h3 class="fw-bold mb-0">{{ it.name }}</h3><span class="badge text-bg-{{ it.status|badge }}">{{ it.status }}</span></div>
+<div class="row g-4"><div class="col-lg-7"><div class="cardx">
+{% if it.image %}<img class="img-fluid rounded mb-3" src="{{ url_for('static', filename='uploads/'+it.image) }}" alt="{{ it.name }}">{% endif %}
+<dl class="row mb-0"><dt class="col-4">Case ID</dt><dd class="col-8">{{ it.case_id }}</dd><dt class="col-4">Type</dt><dd class="col-8">{{ it.type|capitalize }}</dd>
+<dt class="col-4">Category</dt><dd class="col-8">{{ it.category }}</dd><dt class="col-4">Colour</dt><dd class="col-8">{{ it.color or '-' }}</dd>
+<dt class="col-4">Location</dt><dd class="col-8">{{ it.location }}</dd><dt class="col-4">Date</dt><dd class="col-8">{{ it.date }}</dd>
+<dt class="col-4">Description</dt><dd class="col-8">{{ it.description }}</dd>
+{% if admin %}<dt class="col-4">Reported by</dt><dd class="col-8">{{ it.reporter }}</dd>{% endif %}</dl></div>
+{% if can_claim %}<div class="cardx mt-3"><h6>This is mine</h6><form method="post" action="{{ url_for('claim', iid=it.id) }}">
+<textarea class="form-control mb-2" name="description" rows="3" required placeholder="Describe details only the owner would know (marks, contents, where and when you lost it)"></textarea>
+<button class="btn btn-brand">Submit claim</button></form></div>{% elif mine %}<div class="alert alert-info mt-3">You have already submitted a claim. Track it in My Claims.</div>{% endif %}
+{% if admin %}
+{% if it.status=='Pending Review' %}<div class="cardx mt-3"><h6>Review report</h6><form method="post" action="{{ url_for('review', iid=it.id) }}">
+<input class="form-control mb-2" name="reason" placeholder="Reason (required to reject)">
+<button name="action" value="approve" class="btn btn-success">Approve</button> <button name="action" value="reject" class="btn btn-danger">Reject</button></form></div>{% endif %}
+{% for c in claims %}<div class="cardx mt-3"><div class="d-flex justify-content-between"><b>Claim by {{ c.name }}</b><span class="badge text-bg-{{ c.status|badge }}">{{ c.status }}</span></div>
+<div class="small text-muted mb-2">{{ c.email }} · {{ c.created_at }}</div><p>{{ c.description }}</p>
+{% if c.admin_note %}<p class="small">Admin note: {{ c.admin_note }}</p>{% endif %}
+{% if c.status=='Under Review' %}<form method="post" action="{{ url_for('decide', cid=c.id) }}"><input class="form-control mb-2" name="note" placeholder="Note (required to reject)">
+<button name="action" value="approve" class="btn btn-success btn-sm">Approve claim</button> <button name="action" value="reject" class="btn btn-danger btn-sm">Reject claim</button></form>{% endif %}</div>{% endfor %}
+{% if it.status in ('Open','Claim Pending','Ready for Handover') %}<div class="cardx mt-3"><h6>Resolve case</h6><form method="post" action="{{ url_for('resolve', iid=it.id) }}">
+<input class="form-control mb-2" name="reason" placeholder="Notes / closure reason">
+{% if it.status=='Ready for Handover' %}<button name="action" value="recovered" class="btn btn-success btn-sm" onclick="return confirm('Confirm that the item was handed over?')">Mark successfully recovered</button>{% endif %}
+<button name="action" value="closed" class="btn btn-outline-secondary btn-sm" onclick="return confirm('Close this case without recovery?')">Close without recovery</button></form></div>{% endif %}
+{% endif %}</div>
+<div class="col-lg-5"><div class="cardx"><h6 class="mb-3">Case timeline</h6><div class="tl">{% for h in hist %}<div><b>{{ h.status }}</b><div class="small text-muted">{{ h.created_at }} · {{ h.actor }}</div>{% if h.note %}<div class="small">{{ h.note }}</div>{% endif %}</div>{% endfor %}</div></div></div></div>{% endblock %}

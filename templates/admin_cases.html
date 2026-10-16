@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block body %}<h3 class="fw-bold">Case Management{% if st %}: {{ st }}{% endif %}</h3>
+<p class="mb-3">{% for s in ['Pending Review','Open','Claim Pending','Ready for Handover','Successfully Recovered','Closed','Rejected'] %}<a class="btn btn-sm btn-outline-secondary me-1 mb-1" href="{{ url_for('admin_cases', status=s) }}">{{ s }}</a>{% endfor %}<a class="btn btn-sm btn-brand mb-1" href="{{ url_for('admin_cases') }}">All</a></p>
+<div class="cardx table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Case ID</th><th>Item</th><th>Type</th><th>Reported by</th><th>Updated</th><th>Status</th><th></th></tr></thead><tbody>
+{% for r in rows %}<tr><td>{{ r.case_id }}</td><td>{{ r.name }}</td><td>{{ r.type|capitalize }}</td><td>{{ r.reporter }}</td><td>{{ r.updated_at }}</td><td><span class="badge text-bg-{{ r.status|badge }}">{{ r.status }}</span></td><td><a href="{{ url_for('item', iid=r.id) }}">Open</a></td></tr>
+{% else %}<tr><td colspan="7" class="text-center text-muted py-4">No cases found.</td></tr>{% endfor %}</tbody></table></div>{% endblock %}
