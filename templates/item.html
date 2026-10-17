@@ -1,27 +1,507 @@
-{% extends "base.html" %}{% block body %}
-<div class="d-flex gap-2 align-items-center mb-3"><h3 class="fw-bold mb-0">{{ it.name }}</h3><span class="badge text-bg-{{ it.status|badge }}">{{ it.status }}</span></div>
-<div class="row g-4"><div class="col-lg-7"><div class="cardx">
-{% if it.image %}<img class="img-fluid rounded mb-3" src="{{ url_for('static', filename='uploads/'+it.image) }}" alt="{{ it.name }}">{% endif %}
-<dl class="row mb-0"><dt class="col-4">Case ID</dt><dd class="col-8">{{ it.case_id }}</dd><dt class="col-4">Type</dt><dd class="col-8">{{ it.type|capitalize }}</dd>
-<dt class="col-4">Category</dt><dd class="col-8">{{ it.category }}</dd><dt class="col-4">Colour</dt><dd class="col-8">{{ it.color or '-' }}</dd>
-<dt class="col-4">Location</dt><dd class="col-8">{{ it.location }}</dd><dt class="col-4">Date</dt><dd class="col-8">{{ it.date }}</dd>
-<dt class="col-4">Description</dt><dd class="col-8">{{ it.description }}</dd>
-{% if admin %}<dt class="col-4">Reported by</dt><dd class="col-8">{{ it.reporter }}</dd>{% endif %}</dl></div>
-{% if can_claim %}<div class="cardx mt-3"><h6>This is mine</h6><form method="post" action="{{ url_for('claim', iid=it.id) }}">
-<textarea class="form-control mb-2" name="description" rows="3" required placeholder="Describe details only the owner would know (marks, contents, where and when you lost it)"></textarea>
-<button class="btn btn-brand">Submit claim</button></form></div>{% elif mine %}<div class="alert alert-info mt-3">You have already submitted a claim. Track it in My Claims.</div>{% endif %}
-{% if admin %}
-{% if it.status=='Pending Review' %}<div class="cardx mt-3"><h6>Review report</h6><form method="post" action="{{ url_for('review', iid=it.id) }}">
-<input class="form-control mb-2" name="reason" placeholder="Reason (required to reject)">
-<button name="action" value="approve" class="btn btn-success">Approve</button> <button name="action" value="reject" class="btn btn-danger">Reject</button></form></div>{% endif %}
-{% for c in claims %}<div class="cardx mt-3"><div class="d-flex justify-content-between"><b>Claim by {{ c.name }}</b><span class="badge text-bg-{{ c.status|badge }}">{{ c.status }}</span></div>
-<div class="small text-muted mb-2">{{ c.email }} · {{ c.created_at }}</div><p>{{ c.description }}</p>
-{% if c.admin_note %}<p class="small">Admin note: {{ c.admin_note }}</p>{% endif %}
-{% if c.status=='Under Review' %}<form method="post" action="{{ url_for('decide', cid=c.id) }}"><input class="form-control mb-2" name="note" placeholder="Note (required to reject)">
-<button name="action" value="approve" class="btn btn-success btn-sm">Approve claim</button> <button name="action" value="reject" class="btn btn-danger btn-sm">Reject claim</button></form>{% endif %}</div>{% endfor %}
-{% if it.status in ('Open','Claim Pending','Ready for Handover') %}<div class="cardx mt-3"><h6>Resolve case</h6><form method="post" action="{{ url_for('resolve', iid=it.id) }}">
-<input class="form-control mb-2" name="reason" placeholder="Notes / closure reason">
-{% if it.status=='Ready for Handover' %}<button name="action" value="recovered" class="btn btn-success btn-sm" onclick="return confirm('Confirm that the item was handed over?')">Mark successfully recovered</button>{% endif %}
-<button name="action" value="closed" class="btn btn-outline-secondary btn-sm" onclick="return confirm('Close this case without recovery?')">Close without recovery</button></form></div>{% endif %}
-{% endif %}</div>
-<div class="col-lg-5"><div class="cardx"><h6 class="mb-3">Case timeline</h6><div class="tl">{% for h in hist %}<div><b>{{ h.status }}</b><div class="small text-muted">{{ h.created_at }} · {{ h.actor }}</div>{% if h.note %}<div class="small">{{ h.note }}</div>{% endif %}</div>{% endfor %}</div></div></div></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}{{ it.name }} ({{ it.case_id }}) · CampusFind{% endblock %}
+
+{% block body %}
+<!-- Page Header & Navigation -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <a href="{{ url_for('browse') }}" class="btn btn-outline-secondary btn-sm" title="Back to directory">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h3 class="fw-bold mb-0">{{ it.name }}</h3>
+        <span class="type-pill type-{{ it.type }}">
+          {{ it.type }}
+        </span>
+        <span class="status-badge badge-{{ it.status|replace(' ', '-') }}">
+          {{ it.status }}
+        </span>
+      </div>
+      <div class="d-flex align-items-center gap-2 text-muted small">
+        <span class="font-monospace text-dark fw-semibold">{{ it.case_id }}</span>
+        <span>·</span>
+        <span>Reported on {{ it.date }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-secondary btn-sm" onclick="navigator.clipboard.writeText('{{ it.case_id }}'); alert('Case ID copied to clipboard!');">
+      <i class="fa-regular fa-copy me-1"></i> Copy Case ID
+    </button>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left Column: Item Details & Actions -->
+  <div class="col-lg-7">
+    <!-- Item Media & Specifications -->
+    <div class="cardx mb-4">
+      {% if it.image %}
+        <div class="mb-4 rounded-3 overflow-hidden border bg-light text-center">
+          <img class="img-fluid w-100" style="max-height: 420px; object-fit: contain; background: #f8fafc;" src="{{ url_for('static', filename='uploads/' + it.image) }}" alt="{{ it.name }}">
+        </div>
+      {% else %}
+        <div class="item-placeholder rounded-3 mb-4 py-5" style="height: 180px;">
+          <i class="fa-solid fa-{% if it.category == 'Electronics' %}laptop{% elif it.category == 'Documents' %}id-card{% elif it.category == 'Bags' %}bag-shopping{% elif it.category == 'Books' %}book-bookmark{% elif it.category == 'Clothing' %}shirt{% else %}box-archive{% endif %}"></i>
+          <span>No photo provided for this {{ it.type }} item</span>
+        </div>
+      {% endif %}
+
+      <!-- Specifications Grid -->
+      <h6 class="fw-bold mb-3 pb-2 border-bottom">
+        <i class="fa-solid fa-circle-info text-primary me-2"></i>Item Specifications
+      </h6>
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6">
+          <div class="p-3 rounded-3 bg-light border">
+            <div class="text-muted small mb-1"><i class="fa-solid fa-tag me-1 text-primary"></i> Category</div>
+            <div class="fw-semibold text-dark">{{ it.category }}</div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="p-3 rounded-3 bg-light border">
+            <div class="text-muted small mb-1"><i class="fa-solid fa-palette me-1 text-primary"></i> Primary Colour</div>
+            <div class="fw-semibold text-dark">{{ it.color or 'Not specified' }}</div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="p-3 rounded-3 bg-light border">
+            <div class="text-muted small mb-1"><i class="fa-solid fa-location-dot me-1 text-danger"></i> Campus Location</div>
+            <div class="fw-semibold text-dark">{{ it.location }}</div>
+          </div>
+        </div>
+        <div class="col-sm-6">
+          <div class="p-3 rounded-3 bg-light border">
+            <div class="text-muted small mb-1"><i class="fa-regular fa-calendar me-1 text-success"></i> Date Reported</div>
+            <div class="fw-semibold text-dark">{{ it.date }}</div>
+          </div>
+        </div>
+        {% if admin %}
+        <div class="col-12">
+          <div class="p-3 rounded-3 bg-light border">
+            <div class="text-muted small mb-1"><i class="fa-solid fa-user-shield me-1 text-warning"></i> Reporter (Admin View)</div>
+            <div class="fw-semibold text-dark">{{ it.reporter }}</div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Description Block -->
+      <h6 class="fw-bold mb-2 pb-2 border-bottom">
+        <i class="fa-solid fa-align-left text-primary me-2"></i>Description &amp; Context
+      </h6>
+      <div class="p-3 rounded-3 bg-light border text-dark" style="white-space: pre-wrap; font-size: 0.95rem;">{{ it.description }}</div>
+    </div>
+
+    <!-- Official Handover Receipt Certificate (When Successfully Recovered) -->
+    {% if it.status == 'Successfully Recovered' and it.handover_collector %}
+      <div class="cardx mb-4 border-success" style="background: linear-gradient(180deg, rgba(16, 185, 129, 0.05) 0%, #ffffff 100%);">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-icon success" style="width: 40px; height: 40px; font-size: 1.15rem;">
+              <i class="fa-solid fa-award"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">Official Handover Certificate</h5>
+              <div class="text-muted small">Verified item release &amp; recovery record</div>
+            </div>
+          </div>
+          <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 rounded-pill">
+            <i class="fa-solid fa-check-circle me-1"></i> Case Closed
+          </span>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-sm-6">
+            <div class="p-3 bg-white rounded-3 border">
+              <div class="text-muted small mb-1"><i class="fa-solid fa-user-check text-success me-1"></i> Collected By</div>
+              <div class="fw-bold text-dark fs-6">{{ it.handover_collector }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-white rounded-3 border">
+              <div class="text-muted small mb-1"><i class="fa-solid fa-id-card text-primary me-1"></i> Identification Document</div>
+              <div class="fw-bold text-dark fs-6">{{ it.handover_id_type }}: <span class="font-monospace text-primary">{{ it.handover_id_number }}</span></div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-white rounded-3 border">
+              <div class="text-muted small mb-1"><i class="fa-regular fa-clock text-info me-1"></i> Handover Timestamp</div>
+              <div class="fw-semibold text-dark">{{ it.handover_timestamp }}</div>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-3 bg-white rounded-3 border">
+              <div class="text-muted small mb-1"><i class="fa-solid fa-user-shield text-warning me-1"></i> Authorized Staff Officer</div>
+              <div class="fw-semibold text-dark">{{ it.handover_staff }}</div>
+            </div>
+          </div>
+          {% if it.handover_note %}
+          <div class="col-12">
+            <div class="p-3 bg-white rounded-3 border">
+              <div class="text-muted small mb-1"><i class="fa-solid fa-comment-dots text-secondary me-1"></i> Handover Remarks</div>
+              <div class="text-dark small">{{ it.handover_note }}</div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Auto-Match Suggestions (For Admin or Active Items) -->
+    {% if matches %}
+      <div class="cardx mb-4 border-info" style="background: linear-gradient(180deg, rgba(14, 165, 233, 0.04) 0%, #ffffff 100%);">
+        <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+          <div class="d-flex align-items-center gap-2">
+            <div class="stat-icon purple" style="width: 38px; height: 38px; font-size: 1.1rem;">
+              <i class="fa-solid fa-robot"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">Smart Match Suggestions</h5>
+              <div class="text-muted small">Auto-calculated match scores against active {{ 'lost' if it.type == 'found' else 'found' }} belongings</div>
+            </div>
+          </div>
+          <span class="badge bg-primary text-white rounded-pill px-3 py-1 font-monospace">{{ matches|length }} Potential Matches</span>
+        </div>
+
+        <div class="d-flex flex-column gap-3">
+          {% for m in matches %}
+            <div class="p-3 rounded-3 border bg-white d-flex flex-wrap align-items-center justify-content-between gap-3 shadow-xs">
+              <div class="d-flex align-items-center gap-3">
+                {% if m.item.image %}
+                  <img src="{{ url_for('static', filename='uploads/' + m.item.image) }}" alt="{{ m.item.name }}" class="rounded-3" style="width: 58px; height: 58px; object-fit: cover;">
+                {% else %}
+                  <div class="item-placeholder rounded-3 d-flex align-items-center justify-content-center" style="width: 58px; height: 58px;">
+                    <i class="fa-solid fa-box-archive text-secondary"></i>
+                  </div>
+                {% endif %}
+                <div>
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    <a href="{{ url_for('item', iid=m.item.id) }}" class="fw-bold text-dark text-decoration-none hover-primary">
+                      {{ m.item.name }}
+                    </a>
+                    <span class="type-pill type-{{ m.item.type }} py-0 px-2" style="font-size: 0.68rem;">{{ m.item.type }}</span>
+                    <span class="badge bg-light text-muted border font-monospace" style="font-size: 0.7rem;">{{ m.item.case_id }}</span>
+                  </div>
+                  <div class="d-flex flex-wrap gap-1 mb-1">
+                    {% for r in m.reasons %}
+                      <span class="badge bg-light text-secondary border small" style="font-size: 0.7rem;">{{ r }}</span>
+                    {% endfor %}
+                  </div>
+                  <div class="small text-muted" style="font-size: 0.75rem;">
+                    <i class="fa-solid fa-location-dot me-1"></i>{{ m.item.location }} · 
+                    <i class="fa-regular fa-calendar me-1"></i>{{ m.item.date }} · 
+                    Reporter: {{ m.item.reporter_name }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center gap-3 ms-auto">
+                <div class="text-end">
+                  <div class="fw-bold text-primary fs-6">{{ m.score }}% Match</div>
+                  <div class="progress" style="width: 80px; height: 6px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ m.score }}%;"></div>
+                  </div>
+                </div>
+                <a href="{{ url_for('item', iid=m.item.id) }}" class="btn btn-sm btn-outline-secondary">
+                  <span>Compare</span>
+                  <i class="fa-solid fa-arrow-right small ms-1"></i>
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Claim Submission Section (For Students) -->
+    {% if can_claim %}
+      <div class="cardx mb-4 border-primary">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <div class="stat-icon primary" style="width:38px; height:38px; font-size:1.1rem;">
+            <i class="fa-solid fa-handshake"></i>
+          </div>
+          <h5 class="fw-bold mb-0">Claim Ownership</h5>
+        </div>
+
+        {% if it.secret_question %}
+          <div class="p-3 mb-3 rounded-3 border border-warning-subtle" style="background: rgba(245, 158, 11, 0.08);">
+            <div class="d-flex align-items-center gap-2 text-warning-emphasis fw-bold mb-1">
+              <i class="fa-solid fa-shield-halved fs-5"></i>
+              <span>Finder's Verification Challenge:</span>
+            </div>
+            <div class="fs-6 fw-bold text-dark mb-1">"{{ it.secret_question }}"</div>
+            <div class="text-muted small">Please answer this question correctly below. Your response will be verified by campus administration against the finder's confidential note.</div>
+          </div>
+        {% else %}
+          <p class="text-muted small mb-3">
+            To verify this found belonging is yours, please provide verifiable proof (such as serial numbers, stickers, screen lock wallpaper, exact contents, or markings).
+          </p>
+        {% endif %}
+
+        <form method="post" action="{{ url_for('claim', iid=it.id) }}">
+          {% if it.secret_question %}
+            <div class="mb-3">
+              <label class="form-label fw-bold">Your Answer to the Secret Question <span class="text-danger">*</span></label>
+              <input class="form-control" name="claim_answer" required placeholder="Type your answer to the question above...">
+            </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label class="form-label fw-bold">Additional Proof &amp; Details {% if not it.secret_question %}<span class="text-danger">*</span>{% endif %}</label>
+            <textarea class="form-control" name="description" rows="3" {% if not it.secret_question %}required{% endif %} placeholder="Describe unique identifying marks, purchase details, or where and when you lost it..."></textarea>
+          </div>
+          <button class="btn btn-brand">
+            <i class="fa-solid fa-paper-plane me-1"></i> Submit Ownership Claim
+          </button>
+        </form>
+      </div>
+    {% elif mine %}
+      <div class="alert-custom alert-info mb-4">
+        <i class="fa-solid fa-clock-rotate-left fs-5"></i>
+        <div>
+          <strong>Claim Under Review:</strong> You have submitted an ownership claim for this item. You can monitor verification status under <a href="{{ url_for('my_claims') }}" class="alert-link text-decoration-underline">My Claims</a>.
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Admin Moderation & Claims Panel -->
+    {% if admin %}
+      <!-- Initial Report Review -->
+      {% if it.status == 'Pending Review' %}
+        <div class="cardx mb-4 border-warning">
+          <h5 class="fw-bold mb-2">
+            <i class="fa-solid fa-gavel text-warning me-2"></i>Staff Review Required
+          </h5>
+          <p class="text-muted small mb-3">Review this report before publishing it to the public campus directory.</p>
+          <form method="post" action="{{ url_for('review', iid=it.id) }}">
+            <div class="mb-3">
+              <label class="form-label">Feedback / Reason (required if rejecting)</label>
+              <input class="form-control" name="reason" placeholder="e.g., Inappropriate content, duplicate report, insufficient detail">
+            </div>
+            <div class="d-flex gap-2">
+              <button name="action" value="approve" class="btn btn-success">
+                <i class="fa-solid fa-check me-1"></i> Approve &amp; Publish
+              </button>
+              <button name="action" value="reject" class="btn btn-danger">
+                <i class="fa-solid fa-xmark me-1"></i> Reject Report
+              </button>
+            </div>
+          </form>
+        </div>
+      {% endif %}
+
+      <!-- Admin Claims Inspection & Verification Comparison -->
+      {% if claims %}
+        <div class="cardx mb-4">
+          <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+            <h5 class="fw-bold mb-0">
+              <i class="fa-solid fa-users-viewfinder text-primary me-2"></i>Claim Verification ({{ claims|length }})
+            </h5>
+            <span class="badge bg-light text-muted border font-monospace">Staff Verification Tool</span>
+          </div>
+
+          <!-- Finder's Confidential Answer Card (For Staff Reference) -->
+          {% if it.secret_question or it.secret_answer %}
+            <div class="p-3 rounded-3 border border-warning-subtle mb-3" style="background: rgba(245, 158, 11, 0.08);">
+              <div class="d-flex align-items-center gap-2 mb-2 text-warning-emphasis">
+                <i class="fa-solid fa-lock text-warning"></i>
+                <span class="fw-bold">Finder's Confidential Verification Benchmark:</span>
+              </div>
+              <div class="small mb-1"><strong>Secret Question:</strong> {{ it.secret_question or 'Not specified' }}</div>
+              <div class="p-2 rounded bg-white border small text-dark">
+                <strong>Confidential Answer from Finder:</strong><br>
+                <span class="font-monospace text-primary fw-bold">{{ it.secret_answer or 'No answer provided by finder.' }}</span>
+              </div>
+            </div>
+          {% endif %}
+
+          {% for c in claims %}
+            <div class="p-3 rounded-3 border bg-light mb-3">
+              <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <div>
+                  <span class="fw-bold text-dark fs-6">{{ c.name }}</span>
+                  <span class="text-muted small ms-2">({{ c.email }})</span>
+                </div>
+                <span class="status-badge badge-{{ c.status|replace(' ', '-') }}">{{ c.status }}</span>
+              </div>
+              
+              <div class="small text-muted mb-2">
+                <i class="fa-regular fa-clock me-1"></i> Submitted on {{ c.created_at }}
+              </div>
+              
+              {% if c.claim_answer %}
+                <div class="bg-white p-3 rounded border mb-2 text-dark small">
+                  <div class="text-muted small mb-1"><i class="fa-solid fa-key me-1 text-primary"></i> <strong>Claimant's Answer to Secret Question:</strong></div>
+                  <div class="fw-bold text-dark fs-6 font-monospace p-2 rounded bg-light">{{ c.claim_answer }}</div>
+                </div>
+              {% endif %}
+
+              {% if c.description %}
+                <div class="bg-white p-3 rounded border mb-2 text-dark small">
+                  <strong>Claimant's Extra Details:</strong><br>{{ c.description }}
+                </div>
+              {% endif %}
+
+              {% if c.admin_note %}
+                <div class="alert alert-secondary py-1 px-2 small mb-2">
+                  <strong>Staff Decision Note:</strong> {{ c.admin_note }}
+                </div>
+              {% endif %}
+
+              {% if c.status == 'Under Review' %}
+                <form method="post" action="{{ url_for('decide', cid=c.id) }}" class="mt-3">
+                  <div class="input-group input-group-sm mb-2">
+                    <span class="input-group-text bg-white">Staff Note</span>
+                    <input class="form-control" name="note" placeholder="Handover instructions or reason (required if rejecting)">
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button name="action" value="approve" class="btn btn-success btn-sm">
+                      <i class="fa-solid fa-circle-check me-1"></i> Verify &amp; Approve Claim
+                    </button>
+                    <button name="action" value="reject" class="btn btn-danger btn-sm">
+                      <i class="fa-solid fa-circle-xmark me-1"></i> Reject Claim
+                    </button>
+                  </div>
+                </form>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      <!-- Handover Step Panel (When Ready for Handover) -->
+      {% if it.status == 'Ready for Handover' %}
+        <div class="cardx mb-4 border-success" style="background: linear-gradient(180deg, rgba(16, 185, 129, 0.04) 0%, #ffffff 100%);">
+          <div class="d-flex align-items-center gap-2 mb-2">
+            <div class="stat-icon success" style="width: 38px; height: 38px; font-size: 1.1rem;">
+              <i class="fa-solid fa-signature"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-0 text-dark">Handover &amp; Item Release Step</h5>
+              <div class="text-muted small">Record collector identification before handing over the belonging</div>
+            </div>
+          </div>
+
+          <form method="post" action="{{ url_for('resolve', iid=it.id) }}" class="mt-3">
+            <input type="hidden" name="action" value="recovered">
+            
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Collector Full Name <span class="text-danger">*</span></label>
+                <div class="input-with-icon">
+                  <i class="fa-solid fa-user-check"></i>
+                  <input class="form-control" name="collector_name" value="{{ approved_claim.name if approved_claim else '' }}" required placeholder="Name of person collecting">
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Identification Document Type <span class="text-danger">*</span></label>
+                <select class="form-select" name="handover_id_type" required>
+                  <option value="Student ID Card" selected>Student ID Card</option>
+                  <option value="College Faculty / Staff ID">College Faculty / Staff ID</option>
+                  <option value="National Identity Card / Aadhaar">National Identity Card / Aadhaar</option>
+                  <option value="Driver's License">Driver's License</option>
+                  <option value="Passport">Passport</option>
+                  <option value="Other Official ID">Other Official ID</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">ID Number / Code Shown <span class="text-danger">*</span></label>
+                <div class="input-with-icon">
+                  <i class="fa-solid fa-id-card"></i>
+                  <input class="form-control" name="handover_id_number" required placeholder="e.g. STU-2026-9042">
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label">Handover Staff Officer</label>
+                <div class="input-with-icon">
+                  <i class="fa-solid fa-user-shield"></i>
+                  <input class="form-control bg-light" name="handover_staff" value="{{ session.name }}" readonly>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label class="form-label">Handover Remarks / Notes</label>
+                <input class="form-control" name="handover_note" placeholder="e.g. Handed over at central security office, items inspected and signature collected.">
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top">
+              <button type="submit" class="btn btn-success" onclick="return confirm('Confirm that ID has been checked and item handed over to the collector?')">
+                <i class="fa-solid fa-check-double me-1"></i> Complete Handover &amp; Mark Successfully Recovered
+              </button>
+            </div>
+          </form>
+        </div>
+      {% endif %}
+
+      <!-- Case Closure without recovery -->
+      {% if it.status in ('Open', 'Claim Pending', 'Ready for Handover') %}
+        <div class="cardx mb-4">
+          <h6 class="fw-bold mb-2 text-muted">
+            <i class="fa-solid fa-box-archive me-2"></i>Close Case Without Recovery
+          </h6>
+          <form method="post" action="{{ url_for('resolve', iid=it.id) }}">
+            <input type="hidden" name="action" value="closed">
+            <div class="input-group input-group-sm">
+              <input class="form-control" name="reason" placeholder="State reason for closure without recovery (e.g. Expired uncollected, duplicate)" required>
+              <button class="btn btn-outline-secondary" onclick="return confirm('Close this case without recovery?')">
+                Close Case
+              </button>
+            </div>
+          </form>
+        </div>
+      {% endif %}
+    {% endif %}
+  </div>
+
+  <!-- Right Column: Visual Case Audit Timeline -->
+  <div class="col-lg-5">
+    <div class="cardx sticky-top" style="top: 90px;">
+      <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+        <div>
+          <h5 class="fw-bold mb-0 text-dark">
+            <i class="fa-solid fa-timeline text-primary me-2"></i>Case Audit History
+          </h5>
+          <div class="text-muted small">Official accountability &amp; status transition log</div>
+        </div>
+        <span class="badge bg-light text-muted border font-monospace">{{ hist|length }} Events</span>
+      </div>
+
+      <div class="timeline-modern mt-3">
+        {% for h in hist %}
+          <div class="timeline-item">
+            <div class="timeline-dot {% if 'Recovered' in h.new_status or 'Approved' in h.new_status %}success{% elif 'Reject' in h.new_status or 'Closed' in h.new_status %}danger{% elif 'Review' in h.new_status or 'Pending' in h.new_status %}warning{% endif %}"></div>
+            <div class="timeline-content">
+              <div class="d-flex align-items-center justify-content-between mb-1">
+                <div class="d-flex align-items-center gap-1">
+                  {% if h.old_status and h.old_status != 'None' and h.old_status != 'Initial' %}
+                    <span class="badge bg-light text-secondary border small">{{ h.old_status }}</span>
+                    <i class="fa-solid fa-arrow-right text-muted" style="font-size: 0.65rem;"></i>
+                  {% endif %}
+                  <span class="status-badge badge-{{ h.new_status|replace(' ', '-') }} py-0 px-2" style="font-size: 0.72rem;">{{ h.new_status }}</span>
+                </div>
+              </div>
+              <div class="timeline-meta">
+                <i class="fa-regular fa-clock me-1"></i> {{ h.timestamp }} · 
+                <span class="badge bg-white text-dark border">{{ h.changed_by }}</span>
+              </div>
+              {% if h.note %}
+                <div class="timeline-note">{{ h.note }}</div>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          <div class="text-center py-4 text-muted small">No audit history recorded yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

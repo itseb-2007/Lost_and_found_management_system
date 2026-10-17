@@ -1,8 +1,109 @@
-{% extends "base.html" %}{% block body %}<h3 class="fw-bold">Campus Item Directory</h3><p class="text-muted">Search reported belongings and find possible matches.</p>
-<form class="cardx mb-4"><div class="row g-2"><div class="col-lg-4"><input class="form-control" name="q" placeholder="Search name, colour, description or case ID" value="{{ a.q or '' }}"></div>
-<div class="col-6 col-lg-2"><select class="form-select" name="type"><option value="">Lost &amp; Found</option><option value="lost" {{ 'selected' if a.type=='lost' }}>Lost</option><option value="found" {{ 'selected' if a.type=='found' }}>Found</option></select></div>
-<div class="col-6 col-lg-2"><select class="form-select" name="category"><option value="">All categories</option>{% for c in cats %}<option {{ 'selected' if a.category==c }}>{{ c }}</option>{% endfor %}</select></div>
-<div class="col-6 col-lg-2"><select class="form-select" name="location"><option value="">All locations</option>{% for c in locs %}<option {{ 'selected' if a.location==c }}>{{ c }}</option>{% endfor %}</select></div>
-<div class="col-6 col-lg-2 d-flex gap-2"><button class="btn btn-brand flex-fill">Apply</button><a class="btn btn-outline-secondary" href="{{ url_for('browse') }}">Clear</a></div></div></form>
-<p class="text-muted small">{{ items|length }} result(s)</p>
-<div class="row g-3">{% for i in items %}{% include "_card.html" %}{% else %}<div class="cardx text-center text-muted">No items match your filters.</div>{% endfor %}</div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Campus Directory · CampusFind{% endblock %}
+
+{% block body %}
+<div class="mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-2">
+    <div>
+      <h2 class="fw-bold mb-1">Campus Item Directory</h2>
+      <p class="text-muted mb-0">Search and filter active belongings across campus buildings and facilities.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('report', kind='lost') }}" class="btn btn-brand btn-sm">
+        <i class="fa-solid fa-plus me-1"></i> Report Lost
+      </a>
+      <a href="{{ url_for('report', kind='found') }}" class="btn btn-outline-secondary btn-sm">
+        <i class="fa-solid fa-hand-holding-heart me-1"></i> Report Found
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Search & Filter Card -->
+<div class="cardx mb-4">
+  <form method="get" action="{{ url_for('browse') }}">
+    <div class="row g-3 align-items-center">
+      <div class="col-lg-4">
+        <div class="input-with-icon">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input class="form-control" name="q" placeholder="Search keywords, color, or case ID..." value="{{ a.q or '' }}">
+        </div>
+      </div>
+      
+      <div class="col-6 col-lg-2">
+        <select class="form-select" name="type">
+          <option value="">All Types (Lost &amp; Found)</option>
+          <option value="lost" {% if a.type == 'lost' %}selected{% endif %}>Lost Items Only</option>
+          <option value="found" {% if a.type == 'found' %}selected{% endif %}>Found Items Only</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-lg-2">
+        <select class="form-select" name="category">
+          <option value="">All Categories</option>
+          {% for c in cats %}
+            <option value="{{ c }}" {% if a.category == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-6 col-lg-2">
+        <select class="form-select" name="location">
+          <option value="">All Locations</option>
+          {% for loc in locs %}
+            <option value="{{ loc }}" {% if a.location == loc %}selected{% endif %}>{{ loc }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-6 col-lg-2 d-flex gap-2">
+        <button type="submit" class="btn btn-brand flex-fill">
+          <i class="fa-solid fa-filter me-1"></i> Filter
+        </button>
+        {% if a.q or a.type or a.category or a.location %}
+          <a class="btn btn-outline-secondary" href="{{ url_for('browse') }}" title="Clear filters">
+            <i class="fa-solid fa-xmark"></i>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Results Header & Grid -->
+<div class="d-flex align-items-center justify-content-between mb-3 px-1">
+  <div class="d-flex align-items-center gap-2">
+    <span class="fw-semibold text-dark">{{ items|length }}</span>
+    <span class="text-muted small">matching items found</span>
+  </div>
+  
+  {% if a.q or a.type or a.category or a.location %}
+    <div class="d-flex align-items-center gap-1">
+      <span class="badge bg-light text-muted border">Filtered results</span>
+      <a href="{{ url_for('browse') }}" class="small text-danger ms-2 text-decoration-none">Reset all</a>
+    </div>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  {% for i in items %}
+    {% include "_card.html" %}
+  {% else %}
+    <div class="col-12">
+      <div class="cardx">
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fa-solid fa-magnifying-glass"></i>
+          </div>
+          <h5 class="empty-state-title">No matching belongings found</h5>
+          <p class="empty-state-text">Try tweaking your search terms, clearing location filters, or check back later.</p>
+          <a class="btn btn-outline-secondary" href="{{ url_for('browse') }}">
+            <i class="fa-solid fa-rotate-left me-1"></i> Reset Filters
+          </a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endblock %}

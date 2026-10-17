@@ -1,1 +1,20 @@
-{% extends "base.html" %}{% block body %}<div class="auth cardx p-4 text-center"><h4>Something's not right</h4><p class="text-muted">{{ msg }}</p><a class="btn btn-brand" href="{{ url_for('home') }}">Go home</a></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Notice · CampusFind{% endblock %}
+
+{% block body %}
+<div class="d-flex align-items-center justify-content-center py-5">
+  <div class="cardx text-center p-5" style="max-width: 500px; width: 100%;">
+    <div class="empty-state-icon text-danger mb-3" style="background: rgba(239, 68, 68, 0.1);">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+    </div>
+    <h4 class="fw-bold mb-2">Access Notice</h4>
+    <p class="text-muted mb-4">{{ msg }}</p>
+    <div>
+      <a class="btn btn-brand px-4" href="{{ url_for('home') }}">
+        <i class="fa-solid fa-house me-1"></i> Return to Campus Portal
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

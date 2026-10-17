@@ -1,6 +1,50 @@
-{% extends "base.html" %}{% block body %}<div class="auth cardx p-4">
-<h3 class="fw-bold" style="color:var(--brand)">CampusFind</h3><p class="text-muted">Lost something? Let's find it.</p>
-<form method="post"><label class="form-label">College email</label><input class="form-control mb-3" type="email" name="email" required>
-<label class="form-label">Password</label><input class="form-control mb-3" type="password" name="password" required>
-<button class="btn btn-brand w-100">Sign in</button></form>
-<p class="small mt-3 mb-0">New student? <a href="{{ url_for('register') }}">Create an account</a></p></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Sign In · CampusFind{% endblock %}
+
+{% block body %}
+<div class="auth-page-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <i class="fa-solid fa-magnifying-glass-location"></i>
+      </div>
+      <h3 class="auth-title">Student Portal</h3>
+      <p class="auth-subtitle">Lost something on campus? Sign in to search and claim.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('login') }}">
+      <div class="auth-form-group">
+        <label class="form-label">College Email Address</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-envelope"></i>
+          <input class="form-control" type="email" name="email" placeholder="student@college.edu" required autofocus>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <label class="form-label mb-0">Password</label>
+        </div>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-lock"></i>
+          <input class="form-control" type="password" name="password" id="loginPassword" placeholder="••••••••" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-brand w-100 py-2 mt-2">
+        <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Sign In to CampusFind
+      </button>
+    </form>
+
+    <div class="text-center mt-4 pt-3 border-top">
+      <p class="small text-muted mb-2">
+        First time here? <a href="{{ url_for('register') }}" class="fw-semibold">Create student account</a>
+      </p>
+      <p class="small text-muted mb-0">
+        Campus Staff / Admin? <a href="{{ url_for('admin_login') }}" class="fw-semibold text-secondary">Sign in as Administrator</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

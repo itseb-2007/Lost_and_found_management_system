@@ -1,6 +1,93 @@
-{% extends "base.html" %}{% block body %}
-<div class="d-flex justify-content-between flex-wrap gap-2 mb-4"><div><h3 class="fw-bold mb-0">Hello, {{ session.name }}</h3><div class="text-muted">Here's what's happening across your campus.</div></div>
-<div><a class="btn btn-brand" href="{{ url_for('report', kind='lost') }}">Report lost item</a> <a class="btn btn-outline-secondary" href="{{ url_for('browse', type='found') }}">Browse found items</a></div></div>
-<div class="row g-3 mb-4">{% for l,v in stats %}<div class="col-6 col-xl-2"><div class="cardx"><div class="stat">{{ v }}</div><div class="stat-l">{{ l }}</div></div></div>{% endfor %}</div>
-<h5 class="mb-3">Recent items</h5>
-<div class="row g-3">{% for i in recent %}{% include "_card.html" %}{% else %}<p class="text-muted">No items yet. Be the first to <a href="{{ url_for('report', kind='lost') }}">report one</a>.</p>{% endfor %}</div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Dashboard · CampusFind{% endblock %}
+
+{% block body %}
+<!-- Welcome Hero Header -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h2 class="fw-bold mb-0">Welcome back, {{ session.name }}</h2>
+      <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-3 py-1">
+        <i class="fa-solid fa-circle text-success small me-1" style="font-size: 0.55rem;"></i> Active Campus Portal
+      </span>
+    </div>
+    <p class="text-muted mb-0">Track your reported belongings, explore found items, or claim what's yours.</p>
+  </div>
+  
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-brand shadow-sm" href="{{ url_for('report', kind='lost') }}">
+      <i class="fa-solid fa-plus-circle"></i>
+      <span>Report Lost Item</span>
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('browse', type='found') }}">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <span>Browse Found Directory</span>
+    </a>
+  </div>
+</div>
+
+<!-- Key Performance & Activity Stats -->
+<div class="row g-3 mb-4">
+  {% for label, val in stats %}
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="stat-card">
+      <div>
+        <div class="stat-value">{{ val }}</div>
+        <div class="stat-label">{{ label }}</div>
+      </div>
+      <div class="stat-icon {% if loop.index == 1 %}primary{% elif loop.index == 2 %}success{% elif loop.index == 3 %}warning{% elif loop.index == 4 %}info{% elif loop.index == 5 %}purple{% else %}danger{% endif %}">
+        {% if 'Reports' in label %}
+          <i class="fa-solid fa-clipboard-check"></i>
+        {% elif 'Found' in label %}
+          <i class="fa-solid fa-box-open"></i>
+        {% elif 'Active' in label %}
+          <i class="fa-solid fa-clock-rotate-left"></i>
+        {% elif 'Claims' in label %}
+          <i class="fa-solid fa-handshake"></i>
+        {% elif 'Rate' in label %}
+          <i class="fa-solid fa-chart-line"></i>
+        {% else %}
+          <i class="fa-solid fa-award"></i>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Recent Items Section -->
+<div class="cardx mb-4">
+  <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+    <div>
+      <h5 class="fw-bold mb-1">
+        <i class="fa-solid fa-bolt text-warning me-2"></i>Recently Reported Belongings
+      </h5>
+      <p class="text-muted small mb-0">Real-time updates of lost and found submissions across campus.</p>
+    </div>
+    <a href="{{ url_for('browse') }}" class="btn btn-sm btn-outline-secondary">
+      <span>View All</span>
+      <i class="fa-solid fa-arrow-right small ms-1"></i>
+    </a>
+  </div>
+
+  <div class="row g-3">
+    {% for i in recent %}
+      {% include "_card.html" %}
+    {% else %}
+      <div class="col-12">
+        <div class="empty-state">
+          <div class="empty-state-icon">
+            <i class="fa-solid fa-boxes-stacked"></i>
+          </div>
+          <h5 class="empty-state-title">No items reported yet</h5>
+          <p class="empty-state-text">Everything seems accounted for on campus right now! If you've lost or found an item, report it below.</p>
+          <a href="{{ url_for('report', kind='lost') }}" class="btn btn-brand">
+            <i class="fa-solid fa-plus me-1"></i> Report an Item
+          </a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

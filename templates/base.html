@@ -1,30 +1,452 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CampusFind</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet"></head><body>
-<nav class="sidebar"><div class="brand"><i class="fa-solid fa-magnifying-glass-location"></i> CampusFind</div>
-{% if not session.uid %}
-<a href="{{ url_for('login') }}"><i class="fa-solid fa-user-graduate me-2"></i>Student Login</a>
-<a href="{{ url_for('register') }}"><i class="fa-solid fa-user-plus me-2"></i>Register</a>
-<a href="{{ url_for('admin_login') }}"><i class="fa-solid fa-user-shield me-2"></i>Admin Login</a>
-{% elif session.role=='admin' %}
-<a href="{{ url_for('admin') }}"><i class="fa-solid fa-gauge me-2"></i>Overview</a>
-<a href="{{ url_for('admin_cases') }}"><i class="fa-solid fa-folder-open me-2"></i>All Cases</a>
-<a href="{{ url_for('admin_cases', status='Pending Review') }}"><i class="fa-solid fa-clipboard-check me-2"></i>Pending Approvals</a>
-<a href="{{ url_for('browse') }}"><i class="fa-solid fa-boxes-stacked me-2"></i>Browse Items</a>
-{% else %}
-<a href="{{ url_for('dashboard') }}"><i class="fa-solid fa-house me-2"></i>Dashboard</a>
-<a href="{{ url_for('browse') }}"><i class="fa-solid fa-boxes-stacked me-2"></i>Browse Items</a>
-<a href="{{ url_for('report', kind='lost') }}"><i class="fa-solid fa-circle-question me-2"></i>Report Lost Item</a>
-<a href="{{ url_for('report', kind='found') }}"><i class="fa-solid fa-hand-holding-heart me-2"></i>Report Found Item</a>
-<a href="{{ url_for('my_reports') }}"><i class="fa-solid fa-list-check me-2"></i>My Reports</a>
-<a href="{{ url_for('my_claims') }}"><i class="fa-solid fa-handshake me-2"></i>My Claims</a>
-<a href="{{ url_for('admin_login') }}"><i class="fa-solid fa-user-shield me-2"></i>Admin Login</a>
-{% endif %}
-{% if session.uid %}<hr><div class="small text-muted px-2 mb-2">{{ session.name }} ({{ session.role }})</div>
-<a href="{{ url_for('logout') }}"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>{% endif %}</nav>
-<main class="main">
-{% with m = get_flashed_messages(with_categories=true) %}{% for c,t in m %}<div class="alert alert-{{c}}">{{t}}</div>{% endfor %}{% endwith %}
-{% block body %}{% endblock %}</main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}CampusFind · Lost and Found Portal{% endblock %}</title>
+  
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  
+  <!-- Custom Design System -->
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet">
+</head>
+<body>
+
+<div class="app-container">
+  {% if session.uid %}
+  <!-- Mobile Backdrop -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+  <!-- Sidebar -->
+  <aside class="app-sidebar" id="appSidebar">
+    <div class="sidebar-header">
+      <a href="{{ url_for('home') }}" class="brand-wrapper">
+        <div class="brand-icon">
+          <i class="fa-solid fa-magnifying-glass-location"></i>
+        </div>
+        <div>
+          <div class="brand-title">CampusFind</div>
+          <span class="brand-badge">Campus Hub</span>
+        </div>
+      </a>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% if session.role == 'admin' %}
+        <div class="nav-category">Command Center</div>
+        <a href="{{ url_for('admin') }}" class="{% if request.endpoint == 'admin' %}active{% endif %}">
+          <i class="fa-solid fa-gauge-high"></i>
+          <span>Overview</span>
+        </a>
+        <a href="{{ url_for('admin_cases') }}" class="{% if request.endpoint == 'admin_cases' and not request.args.get('status') %}active{% endif %}">
+          <i class="fa-solid fa-folder-open"></i>
+          <span>All Cases</span>
+        </a>
+        <a href="{{ url_for('admin_cases', status='Pending Review') }}" class="{% if request.args.get('status') == 'Pending Review' %}active{% endif %}">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Pending Approvals</span>
+        </a>
+
+        <div class="nav-category">Directory</div>
+        <a href="{{ url_for('browse') }}" class="{% if request.endpoint == 'browse' %}active{% endif %}">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Browse Items</span>
+        </a>
+
+      {% else %}
+        <div class="nav-category">Main Menu</div>
+        <a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+          <i class="fa-solid fa-grip"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="{{ url_for('browse') }}" class="{% if request.endpoint == 'browse' %}active{% endif %}">
+          <i class="fa-solid fa-compass"></i>
+          <span>Browse Directory</span>
+        </a>
+
+        <div class="nav-category">Actions</div>
+        <a href="{{ url_for('report', kind='lost') }}" class="{% if request.endpoint == 'report' and request.view_args.get('kind') == 'lost' %}active{% endif %}">
+          <i class="fa-solid fa-circle-question text-danger"></i>
+          <span>Report Lost Item</span>
+        </a>
+        <a href="{{ url_for('report', kind='found') }}" class="{% if request.endpoint == 'report' and request.view_args.get('kind') == 'found' %}active{% endif %}">
+          <i class="fa-solid fa-hand-holding-heart text-success"></i>
+          <span>Report Found Item</span>
+        </a>
+
+        <div class="nav-category">My Activity</div>
+        <a href="{{ url_for('my_reports') }}" class="{% if request.endpoint == 'my_reports' %}active{% endif %}">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span>My Reports</span>
+        </a>
+        <a href="{{ url_for('my_claims') }}" class="{% if request.endpoint == 'my_claims' %}active{% endif %}">
+          <i class="fa-solid fa-handshake-angle"></i>
+          <span>My Claims</span>
+        </a>
+
+        <div class="nav-category">Security</div>
+        <a href="{{ url_for('admin_login') }}">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>Admin Portal</span>
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-profile-pill">
+        <div class="avatar-circle">
+          {{ (session.name or 'User')[:2] | upper }}
+        </div>
+        <div class="user-meta">
+          <div class="user-name" title="{{ session.name }}">{{ session.name }}</div>
+          <span class="user-role-badge {% if session.role == 'admin' %}admin-badge{% endif %}">
+            <i class="fa-solid fa-{% if session.role == 'admin' %}shield{% else %}graduation-cap{% endif %} me-1"></i>{{ session.role }}
+          </span>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn-sidebar-logout" title="Sign out">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </a>
+      </div>
+    </div>
+  </aside>
+  {% endif %}
+
+  <!-- Main Content Area -->
+  <div class="app-main {% if not session.uid %}app-main-guest{% endif %}">
+    {% if session.uid %}
+    <!-- Top Header for Authenticated Users -->
+    <header class="app-topbar">
+      <div class="topbar-left">
+        <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Toggle Navigation">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="topbar-breadcrumbs">
+          <i class="fa-solid fa-layer-group text-primary"></i>
+          <span>CampusFind</span>
+          <i class="fa-solid fa-chevron-right small text-muted"></i>
+          <span class="current-crumb">
+            {% if session.role == 'admin' %}
+              Admin Portal
+            {% else %}
+              Student Portal
+            {% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div class="topbar-right">
+        <a href="{{ url_for('browse') }}" class="search-shortcut-pill d-none d-md-flex">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <span>Quick Directory</span>
+          <kbd>Ctrl+K</kbd>
+        </a>
+
+        <!-- In-App Notification Bell -->
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary btn-sm position-relative rounded-circle d-flex align-items-center justify-content-center" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications" style="width: 38px; height: 38px;">
+            <i class="fa-solid fa-bell text-secondary"></i>
+            {% if unread_notifs_count > 0 %}
+              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-white" style="font-size: 0.65rem;">
+                {{ unread_notifs_count }}
+                <span class="visually-hidden">unread notifications</span>
+              </span>
+            {% endif %}
+          </button>
+          
+          <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 mt-2 p-0" style="width: 350px; max-height: 480px; overflow-y: auto;">
+            <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light rounded-top-4">
+              <div class="d-flex align-items-center gap-2">
+                <h6 class="fw-bold mb-0 text-dark">Notifications</h6>
+                {% if unread_notifs_count > 0 %}
+                  <span class="badge bg-primary rounded-pill small">{{ unread_notifs_count }} new</span>
+                {% endif %}
+              </div>
+              {% if notifications and unread_notifs_count > 0 %}
+                <a href="{{ url_for('notifications_mark_all_read') }}" class="small text-decoration-none text-primary fw-semibold">Mark all read</a>
+              {% endif %}
+            </div>
+
+            <div class="list-group list-group-flush">
+              {% for n in notifications %}
+                <a href="{{ url_for('notification_read', nid=n.id) }}" class="list-group-item list-group-item-action p-3 d-flex gap-3 align-items-start {% if not n.is_read %}bg-primary-subtle bg-opacity-10{% endif %}">
+                  <div class="stat-icon {% if 'Approved' in n.title or 'Recovered' in n.title %}success{% elif 'Reject' in n.title %}danger{% elif 'Auto-Match' in n.title %}purple{% elif 'Claim' in n.title %}info{% else %}primary{% endif %}" style="width: 34px; height: 34px; font-size: 0.9rem; flex-shrink: 0;">
+                    {% if 'Approved' in n.title or 'Recovered' in n.title %}
+                      <i class="fa-solid fa-check"></i>
+                    {% elif 'Reject' in n.title %}
+                      <i class="fa-solid fa-xmark"></i>
+                    {% elif 'Auto-Match' in n.title %}
+                      <i class="fa-solid fa-robot"></i>
+                    {% elif 'Claim' in n.title %}
+                      <i class="fa-solid fa-handshake"></i>
+                    {% else %}
+                      <i class="fa-solid fa-bell"></i>
+                    {% endif %}
+                  </div>
+                  <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                      <span class="fw-bold text-dark small text-truncate">{{ n.title }}</span>
+                      {% if not n.is_read %}
+                        <span class="badge bg-primary rounded-circle p-1" style="width:6px; height:6px;"></span>
+                      {% endif %}
+                    </div>
+                    <div class="text-muted small text-break mb-1" style="font-size: 0.78rem; line-height: 1.35;">{{ n.message }}</div>
+                    <div class="text-muted" style="font-size: 0.7rem;"><i class="fa-regular fa-clock me-1"></i>{{ n.created_at }}</div>
+                  </div>
+                </a>
+              {% else %}
+                <div class="text-center py-4 text-muted small">
+                  <i class="fa-regular fa-bell-slash fs-4 d-block mb-2 text-secondary opacity-50"></i>
+                  No notifications yet
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {% if session.role == 'student' %}
+        <div class="dropdown">
+          <button class="btn btn-brand btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="fa-solid fa-plus me-1"></i> Report Item
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 mt-1">
+            <li>
+              <a class="dropdown-item py-2" href="{{ url_for('report', kind='lost') }}">
+                <i class="fa-solid fa-circle-question text-danger me-2"></i> Report Lost Item
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item py-2" href="{{ url_for('report', kind='found') }}">
+                <i class="fa-solid fa-hand-holding-heart text-success me-2"></i> Report Found Item
+              </a>
+            </li>
+          </ul>
+        </div>
+        {% elif session.role == 'admin' %}
+        <a href="{{ url_for('admin_cases') }}" class="btn btn-brand btn-sm">
+          <i class="fa-solid fa-folder-tree me-1"></i> Manage Cases
+        </a>
+        {% endif %}
+      </div>
+    </header>
+
+    {% else %}
+    <!-- Guest Topbar -->
+    <header class="guest-topbar">
+      <div class="container d-flex align-items-center justify-content-between py-3 px-3 px-md-4">
+        <a href="{{ url_for('home') }}" class="d-flex align-items-center gap-2 text-decoration-none">
+          <div class="brand-icon" style="width:38px; height:38px; font-size:1.1rem;">
+            <i class="fa-solid fa-magnifying-glass-location"></i>
+          </div>
+          <span class="fw-bold fs-5 text-dark" style="letter-spacing: -0.02em;">CampusFind</span>
+        </a>
+        <div class="d-flex align-items-center gap-2">
+          <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-sm px-3">
+            <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Sign In
+          </a>
+          <a href="{{ url_for('register') }}" class="btn btn-brand btn-sm px-3">
+            <i class="fa-solid fa-user-plus me-1"></i> Register
+          </a>
+          <a href="{{ url_for('admin_login') }}" class="btn btn-link btn-sm text-muted text-decoration-none ms-1" title="Campus Staff Administration">
+            <i class="fa-solid fa-shield-halved"></i>
+          </a>
+        </div>
+      </div>
+    </header>
+    {% endif %}
+
+    <!-- Main Content Body (Single Block Body) -->
+    <main class="content-body {% if not session.uid %}content-body-guest{% endif %}">
+      {% with m = get_flashed_messages(with_categories=true) %}
+        {% if m %}
+          <div class="container-fluid px-0 {% if not session.uid %}pt-3{% endif %}">
+            {% for c, t in m %}
+              <div class="alert-custom alert-{{ c }} {% if not session.uid %}mx-auto{% endif %}" {% if not session.uid %}style="max-width: 480px;"{% endif %}>
+                <i class="fa-solid fa-{% if c == 'success' %}circle-check{% elif c == 'danger' %}circle-exclamation{% elif c == 'warning' %}triangle-exclamation{% else %}circle-info{% endif %} fs-5"></i>
+                <div class="flex-grow-1">{{ t }}</div>
+                <button type="button" class="btn-close ms-2" onclick="this.parentElement.remove()" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block body %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+<!-- Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Mobile Navigation Toggle Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const sidebar = document.getElementById('appSidebar');
+    const toggleBtn = document.getElementById('sidebarToggle');
+    const backdrop = document.getElementById('sidebarBackdrop');
+
+    if (toggleBtn && sidebar && backdrop) {
+      function openSidebar() {
+        sidebar.classList.add('show');
+        backdrop.classList.add('show');
+      }
+      function closeSidebar() {
+        sidebar.classList.remove('show');
+        backdrop.classList.remove('show');
+      }
+
+      toggleBtn.addEventListener('click', openSidebar);
+      backdrop.addEventListener('click', closeSidebar);
+    }
+
+    // Keyboard shortcut (Ctrl+K or Cmd+K) to quick browse
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        window.location.href = "{{ url_for('browse') }}";
+      }
+    });
+
+    // =========================================================================
+    // Professional Task Loading System
+    // =========================================================================
+    const overlay = document.getElementById('globalLoadingOverlay');
+    const bar = document.getElementById('topProgressBar');
+    const titleEl = document.getElementById('loadingTitle');
+    const subtitleEl = document.getElementById('loadingSubtitle');
+
+    window.showLoading = function (title, subtitle) {
+      if (title && titleEl) titleEl.textContent = title;
+      if (subtitle && subtitleEl) subtitleEl.textContent = subtitle;
+
+      if (bar) {
+        bar.style.width = '25%';
+        setTimeout(() => { if (bar) bar.style.width = '70%'; }, 200);
+      }
+
+      if (overlay) {
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+    };
+
+    window.hideLoading = function () {
+      if (bar) {
+        bar.style.width = '100%';
+        setTimeout(() => { 
+          if (bar) bar.style.width = '0%'; 
+        }, 300);
+      }
+      if (overlay) {
+        overlay.classList.remove('show');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+      document.querySelectorAll('.btn.is-loading').forEach(b => {
+        b.classList.remove('is-loading');
+        b.removeAttribute('disabled');
+      });
+    };
+
+    // Attach to all form submissions (all task workflows)
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', function (e) {
+        if (!form.checkValidity()) {
+          return; // Allow native HTML5 validation errors to show without loading
+        }
+
+        const action = (form.getAttribute('action') || window.location.pathname || '').toLowerCase();
+        const submitBtn = e.submitter || document.activeElement || form.querySelector('button[type="submit"]') || form.querySelector('button:not([type="button"])');
+
+        // If clicked button has name and value (e.g. action=approve / action=reject), sync to hidden input
+        if (submitBtn && submitBtn.name && submitBtn.value) {
+          let hiddenInput = form.querySelector(`input[type="hidden"][name="${submitBtn.name}"]`);
+          if (!hiddenInput) {
+            hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = submitBtn.name;
+            form.appendChild(hiddenInput);
+          }
+          hiddenInput.value = submitBtn.value;
+        }
+
+        let title = "Processing Request";
+        let subtitle = "Updating records and verifying campus data...";
+
+        if (action.includes('admin/login') || window.location.pathname.includes('admin/login')) {
+          title = "Authenticating Administrator...";
+          subtitle = "Verifying security credentials and access permissions...";
+        } else if (action.includes('login') || window.location.pathname.includes('login')) {
+          title = "Signing in...";
+          subtitle = "Validating student account and loading dashboard...";
+        } else if (action.includes('register') || window.location.pathname.includes('register')) {
+          title = "Creating Student Account...";
+          subtitle = "Registering institutional profile to CampusFind network...";
+        } else if (action.includes('report')) {
+          title = "Publishing Report...";
+          subtitle = "Processing photo upload and lodging case in the campus registry...";
+        } else if (action.includes('claim')) {
+          title = "Submitting Ownership Claim...";
+          subtitle = "Forwarding your proof details to campus staff for verification...";
+        } else if (action.includes('review') || action.includes('decide')) {
+          title = "Recording Decision...";
+          subtitle = "Updating item status and appending audit trail logs...";
+        } else if (action.includes('resolve')) {
+          title = "Finalizing Case...";
+          subtitle = "Marking case resolution and updating campus archive...";
+        } else if (form.getAttribute('method') === 'get' || action.includes('items')) {
+          title = "Searching Directory...";
+          subtitle = "Filtering matching belongings across campus buildings...";
+        }
+
+        // Add loading state to button without dropping form serialization
+        if (submitBtn) {
+          submitBtn.classList.add('is-loading');
+          submitBtn.style.pointerEvents = 'none';
+          submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin me-2"></i>Processing...';
+        }
+
+        window.showLoading(title, subtitle);
+      });
+    });
+
+    // Reset loading state on browser navigation (bfcache)
+    window.addEventListener('pageshow', function () {
+      window.hideLoading();
+    });
+  });
+</script>
+
+<!-- Top Progress Indicator -->
+<div id="topProgressBar" class="top-progress-bar"></div>
+
+<!-- Global Professional Loading Modal Overlay -->
+<div id="globalLoadingOverlay" class="global-loading-overlay" aria-hidden="true">
+  <div class="loading-modal-card">
+    <div class="loading-spinner-wrapper">
+      <div class="loading-ring-spinner"></div>
+      <div class="loading-ring-spinner-reverse"></div>
+      <div class="loading-center-icon">
+        <i class="fa-solid fa-magnifying-glass-location"></i>
+      </div>
+    </div>
+    
+    <div class="loading-text-content">
+      <h5 class="loading-title" id="loadingTitle">Processing Request</h5>
+      <p class="loading-subtitle" id="loadingSubtitle">Updating records and verifying campus data...</p>
+    </div>
+
+    <div class="loading-progress-track">
+      <div class="loading-progress-bar-inner"></div>
+    </div>
+  </div>
+</div>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

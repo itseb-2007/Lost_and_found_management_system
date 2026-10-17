@@ -1,12 +1,203 @@
-{% extends "base.html" %}{% block body %}<h3 class="fw-bold">Report a {{ kind }} item</h3>
-<p class="text-muted">{{ 'Tell us what you lost and where you last saw it.' if kind=='lost' else 'Help return a belonging to its owner.' }} An admin reviews every report before it goes live.</p>
-<form method="post" enctype="multipart/form-data" class="cardx" style="max-width:720px"><div class="row g-3">
-<div class="col-md-6"><label class="form-label">Item name *</label><input class="form-control" name="name" required></div>
-<div class="col-md-6"><label class="form-label">Category *</label><select class="form-select" name="category" required>{% for c in cats %}<option>{{ c }}</option>{% endfor %}</select></div>
-<div class="col-md-6"><label class="form-label">Colour</label><input class="form-control" name="color"></div>
-<div class="col-md-6"><label class="form-label">Campus location *</label><select class="form-select" name="location" required>{% for c in locs %}<option>{{ c }}</option>{% endfor %}</select></div>
-<div class="col-md-6"><label class="form-label">Date {{ kind }} *</label><input class="form-control" type="date" name="date" required></div>
-<div class="col-md-6"><label class="form-label">Photo (JPG/PNG, max 4 MB)</label><input class="form-control" type="file" name="image" accept="image/*"></div>
-<div class="col-12"><label class="form-label">Description *</label><textarea class="form-control" name="description" rows="3" required></textarea>
-{% if kind=='found' %}<div class="form-text">Don't include hidden identifying details; the owner proves them when claiming.</div>{% endif %}</div></div>
-<button class="btn btn-brand mt-3">Submit report</button></form>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Report {{ kind|capitalize }} Item · CampusFind{% endblock %}
+
+{% block body %}
+<div class="mb-4" style="max-width: 820px;">
+  <div class="d-flex align-items-center gap-3 mb-2">
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-sm" title="Back to dashboard">
+      <i class="fa-solid fa-arrow-left"></i>
+    </a>
+    <div>
+      <div class="d-flex align-items-center gap-2 mb-1">
+        <h2 class="fw-bold mb-0">Report a {{ kind|capitalize }} Item</h2>
+        <span class="type-pill type-{{ kind }}">
+          <i class="fa-solid fa-{% if kind == 'lost' %}circle-question{% else %}hand-holding-heart{% endif %} me-1"></i>{{ kind }}
+        </span>
+      </div>
+      <p class="text-muted mb-0">
+        {% if kind == 'lost' %}
+          Provide details about the item you misplaced so campus staff and finders can match it.
+        {% else %}
+          Help return a found belonging to its rightful student or staff owner.
+        {% endif %}
+      </p>
+    </div>
+  </div>
+</div>
+
+<div style="max-width: 820px;">
+  <!-- Helpful Guidance Notice -->
+  <div class="alert-custom alert-info mb-4">
+    <i class="fa-solid fa-shield-halved fs-5"></i>
+    <div>
+      <strong>Campus Moderation Policy:</strong> All submissions are reviewed by campus staff prior to going live on the directory to ensure student privacy and prevent spam.
+      {% if kind == 'found' %}
+        <div class="small mt-1 text-primary">Tip: Avoid describing secret serial numbers or personal stickers, as the true owner must state these during verification.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="cardx shadow-sm">
+    <div class="row g-4">
+      <!-- Section: Basics -->
+      <div class="col-12">
+        <h6 class="fw-bold pb-2 border-bottom text-primary">
+          <i class="fa-solid fa-tag me-2"></i>1. Item Information
+        </h6>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Item Name / Title <span class="text-danger">*</span></label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-heading"></i>
+          <input class="form-control" name="name" placeholder="e.g. Dell XPS Laptop, Blue Water Bottle, Black Leather Wallet" required>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Category <span class="text-danger">*</span></label>
+        <select class="form-select" name="category" required>
+          <option value="" disabled selected>Select category...</option>
+          {% for c in cats %}
+            <option value="{{ c }}">{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Primary Colour</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-palette"></i>
+          <input class="form-control" name="color" placeholder="e.g. Space Grey, Navy Blue, Red">
+        </div>
+      </div>
+
+      <!-- Section: Location & Date -->
+      <div class="col-12 pt-2">
+        <h6 class="fw-bold pb-2 border-bottom text-primary">
+          <i class="fa-solid fa-location-dot me-2"></i>2. Time &amp; Campus Location
+        </h6>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Campus Location <span class="text-danger">*</span></label>
+        <select class="form-select" name="location" required>
+          <option value="" disabled selected>Where was it {{ kind }}?...</option>
+          {% for loc in locs %}
+            <option value="{{ loc }}">{{ loc }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Date {{ kind|capitalize }} <span class="text-danger">*</span></label>
+        <input class="form-control" type="date" name="date" required>
+      </div>
+
+      <!-- Section: Photo Upload -->
+      <div class="col-12 pt-2">
+        <h6 class="fw-bold pb-2 border-bottom text-primary">
+          <i class="fa-solid fa-camera me-2"></i>3. Photo &amp; Visual Evidence
+        </h6>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Upload Item Photo (Optional, max 4 MB)</label>
+        <div class="upload-dropzone" id="dropZone">
+          <input type="file" name="image" id="fileInput" accept="image/png, image/jpeg, image/jpg, image/webp">
+          <div class="upload-dropzone-icon">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+          </div>
+          <div class="fw-bold text-dark mb-1" id="dropZoneLabel">Click or drag &amp; drop item photo here</div>
+          <div class="small text-muted">Supports JPG, PNG, WEBP (Max 4 MB)</div>
+          
+          <div class="image-preview-container" id="previewContainer">
+            <img id="imagePreview" alt="Item Preview">
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Description -->
+      <div class="col-12 pt-2">
+        <h6 class="fw-bold pb-2 border-bottom text-primary">
+          <i class="fa-solid fa-file-lines me-2"></i>4. Detailed Description
+        </h6>
+      </div>
+
+      <div class="col-12">
+        <label class="form-label">Description <span class="text-danger">*</span></label>
+        <textarea class="form-control" name="description" rows="4" required placeholder="Describe appearance, distinctive marks, brand, condition, or circumstances..."></textarea>
+      </div>
+
+      {% if kind == 'found' %}
+      <!-- Section: Secret Verification Challenge (Finder Security) -->
+      <div class="col-12 pt-2">
+        <div class="p-3 border border-warning-subtle rounded-3" style="background: rgba(245, 158, 11, 0.06);">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <i class="fa-solid fa-shield-halved text-warning fs-5"></i>
+            <h6 class="fw-bold mb-0 text-dark">5. Secret Verification Question (Claim Protection)</h6>
+          </div>
+          <p class="text-muted small mb-3">
+            Define a challenge question that only the rightful owner would know. When students try to claim this found item, they will be asked to answer this question. Your answer will remain private and only visible to Campus Staff.
+          </p>
+          
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Verification Question <span class="text-danger">*</span></label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-circle-question"></i>
+                <input class="form-control" name="secret_question" required placeholder="e.g. What is the lock-screen wallpaper?">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Finder's Confidential Answer <span class="text-danger">*</span></label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-lock"></i>
+                <input class="form-control" name="secret_answer" required placeholder="e.g. Picture of a black cat with green eyes">
+              </div>
+              <div class="form-text text-muted">Kept confidential; compared by staff during claim review.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-brand px-4">
+        <i class="fa-solid fa-check-circle me-1"></i> Submit Report for Approval
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Live preview for image dropzone
+  const fileInput = document.getElementById('fileInput');
+  const previewContainer = document.getElementById('previewContainer');
+  const imagePreview = document.getElementById('imagePreview');
+  const dropZoneLabel = document.getElementById('dropZoneLabel');
+
+  if (fileInput) {
+    fileInput.addEventListener('change', function () {
+      const file = this.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          imagePreview.src = e.target.result;
+          previewContainer.style.display = 'block';
+          dropZoneLabel.textContent = 'Selected: ' + file.name;
+        };
+        reader.readAsDataURL(file);
+      } else {
+        previewContainer.style.display = 'none';
+        dropZoneLabel.textContent = 'Click or drag & drop item photo here';
+      }
+    });
+  }
+</script>
+{% endblock %}

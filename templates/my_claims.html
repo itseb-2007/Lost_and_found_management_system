@@ -1,4 +1,115 @@
-{% extends "base.html" %}{% block body %}<h3 class="fw-bold">My Claims</h3><p class="text-muted">Track your requests to recover found belongings.</p>
-<div class="cardx table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Item</th><th>Case ID</th><th>Submitted</th><th>Status</th><th>Admin note</th></tr></thead><tbody>
-{% for r in rows %}<tr><td><a href="{{ url_for('item', iid=r.item_id) }}">{{ r.name }}</a></td><td>{{ r.case_id }}</td><td>{{ r.created_at }}</td><td><span class="badge text-bg-{{ r.status|badge }}">{{ r.status }}</span></td><td>{{ r.admin_note or '-' }}</td></tr>
-{% else %}<tr><td colspan="5" class="text-center text-muted py-4">No claims yet. Browse found items to claim yours.</td></tr>{% endfor %}</tbody></table></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}My Claims · CampusFind{% endblock %}
+
+{% block body %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h2 class="fw-bold mb-0">My Ownership Claims</h2>
+      <span class="badge bg-light text-muted border rounded-pill px-3">{{ rows|length }} Total</span>
+    </div>
+    <p class="text-muted mb-0">Track verification status and collection instructions for belongings you have claimed.</p>
+  </div>
+  
+  <div>
+    <a href="{{ url_for('browse', type='found') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="fa-solid fa-compass me-1"></i> Browse Found Items
+    </a>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Claimed Belonging</th>
+          <th>Case ID</th>
+          <th>Verification Details</th>
+          <th>Submitted On</th>
+          <th>Verification Status</th>
+          <th>Next Steps / Staff Notes</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>
+              <div class="d-flex align-items-center gap-3">
+                {% if r.image %}
+                  <img src="{{ url_for('static', filename='uploads/' + r.image) }}" alt="{{ r.name }}" class="rounded-3" style="width: 44px; height: 44px; object-fit: cover;">
+                {% else %}
+                  <div class="item-placeholder rounded-3 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                    <i class="fa-solid fa-box-archive text-secondary" style="font-size: 1rem;"></i>
+                  </div>
+                {% endif %}
+                <div>
+                  <a href="{{ url_for('item', iid=r.item_id) }}" class="fw-bold text-dark text-decoration-none hover-primary">
+                    {{ r.name }}
+                  </a>
+                  <div class="small text-muted"><i class="fa-solid fa-location-dot me-1"></i>{{ r.location }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="font-monospace fw-semibold text-dark">{{ r.case_id }}</span>
+            </td>
+            <td style="max-width: 240px;">
+              {% if r.claim_answer %}
+                <div class="small">
+                  <span class="text-muted">Answer:</span> <strong class="text-dark">{{ r.claim_answer }}</strong>
+                </div>
+              {% endif %}
+              {% if r.description %}
+                <div class="text-muted small text-truncate" title="{{ r.description }}">{{ r.description }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>{{ r.created_at }}</span>
+            </td>
+            <td>
+              <span class="status-badge badge-{{ r.status|replace(' ', '-') }}">
+                {{ r.status }}
+              </span>
+            </td>
+            <td>
+              {% if r.status == 'Approved' %}
+                <div class="badge bg-success-subtle text-success border border-success-subtle p-2 text-wrap text-start">
+                  <i class="fa-solid fa-person-walking-arrow-right me-1"></i> Ready for Handover: Present your College ID at Campus Security Desk to collect.
+                </div>
+              {% elif r.admin_note %}
+                <span class="badge bg-light text-dark border fw-normal text-wrap text-start">{{ r.admin_note }}</span>
+              {% else %}
+                <span class="text-muted small"><i class="fa-solid fa-hourglass-half me-1"></i> Under staff review</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('item', iid=r.item_id) }}" class="btn btn-sm btn-outline-secondary">
+                <span>View Case</span>
+                <i class="fa-solid fa-chevron-right small ms-1"></i>
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="7" class="p-0">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <i class="fa-solid fa-handshake-angle"></i>
+                </div>
+                <h5 class="empty-state-title">No ownership claims submitted yet</h5>
+                <p class="empty-state-text">You haven't claimed any found items yet. If you misplaced a belonging on campus, search through active found items to submit a claim.</p>
+                <a href="{{ url_for('browse', type='found') }}" class="btn btn-brand">
+                  <i class="fa-solid fa-magnifying-glass me-1"></i> Browse Found Items
+                </a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

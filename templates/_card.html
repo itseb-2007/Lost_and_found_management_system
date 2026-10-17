@@ -1,6 +1,46 @@
-<div class="col-md-6 col-xl-4"><div class="cardx p-0 h-100">
-{% if i.image %}<img class="itemimg" src="{{ url_for('static', filename='uploads/'+i.image) }}" alt="{{ i.name }}">{% else %}<div class="ph"><i class="fa-regular fa-image"></i></div>{% endif %}
-<div class="p-3"><div class="d-flex justify-content-between"><span class="badge text-bg-{{ 'danger' if i.type=='lost' else 'success' }}">{{ i.type|capitalize }}</span><span class="small text-muted">{{ i.case_id }}</span></div>
-<h6 class="mt-2 mb-1">{{ i.name }}</h6><div class="small text-muted">{{ i.category }} · {{ i.location }} · {{ i.date }}</div>
-<div class="d-flex justify-content-between align-items-center mt-3"><span class="badge text-bg-{{ i.status|badge }}">{{ i.status }}</span>
-<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('item', iid=i.id) }}">View details</a></div></div></div></div>
+<div class="col-md-6 col-xl-4">
+  <div class="item-card">
+    <div class="item-thumb-wrapper">
+      {% if i.image %}
+        <img src="{{ url_for('static', filename='uploads/' + i.image) }}" alt="{{ i.name }}" loading="lazy">
+      {% else %}
+        <div class="item-placeholder">
+          <i class="fa-solid fa-{% if i.category == 'Electronics' %}laptop{% elif i.category == 'Documents' %}id-card{% elif i.category == 'Bags' %}bag-shopping{% elif i.category == 'Books' %}book-bookmark{% elif i.category == 'Clothing' %}shirt{% elif i.category == 'Accessories' %}glasses{% else %}box-archive{% endif %}"></i>
+          <span>{{ i.category }}</span>
+        </div>
+      {% endif %}
+      <div class="item-overlay-badges">
+        <span class="type-pill type-{{ i.type }}">
+          <i class="fa-solid fa-{% if i.type == 'lost' %}circle-question{% else %}hand-holding-heart{% endif %} me-1"></i>{{ i.type }}
+        </span>
+        <span class="case-id-pill">{{ i.case_id }}</span>
+      </div>
+    </div>
+
+    <div class="item-card-body">
+      <h6 class="item-card-title" title="{{ i.name }}">{{ i.name }}</h6>
+      
+      <div class="item-meta-chips">
+        <span class="meta-chip" title="Category">
+          <i class="fa-solid fa-tag"></i> {{ i.category }}
+        </span>
+        <span class="meta-chip" title="Campus Location">
+          <i class="fa-solid fa-location-dot"></i> {{ i.location }}
+        </span>
+        <span class="meta-chip" title="Date Reported">
+          <i class="fa-regular fa-calendar"></i> {{ i.date }}
+        </span>
+      </div>
+
+      <div class="item-card-footer">
+        <span class="status-badge badge-{{ i.status|replace(' ', '-') }}">
+          {{ i.status }}
+        </span>
+        <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('item', iid=i.id) }}">
+          <span>View</span>
+          <i class="fa-solid fa-arrow-right small"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>

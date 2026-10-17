@@ -1,7 +1,60 @@
-{% extends "base.html" %}{% block body %}<div class="auth cardx p-4"><h4 class="fw-bold">Create your account</h4>
-<p class="text-muted small">Only @{{ domain }} college emails are accepted.</p>
-<form method="post"><label class="form-label">Full name</label><input class="form-control mb-3" name="name" required>
-<label class="form-label">College email</label><input class="form-control mb-3" type="email" name="email" required>
-<label class="form-label">Password</label><input class="form-control mb-3" type="password" name="password" minlength="6" required>
-<button class="btn btn-brand w-100">Register</button></form>
-<p class="small mt-3 mb-0">Already registered? <a href="{{ url_for('login') }}">Sign in</a></p></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Create Account · CampusFind{% endblock %}
+
+{% block body %}
+<div class="auth-page-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">
+        <i class="fa-solid fa-user-plus"></i>
+      </div>
+      <h3 class="auth-title">Create Account</h3>
+      <p class="auth-subtitle">Join your campus lost &amp; found network</p>
+    </div>
+
+    <!-- Campus Domain Badge Notice -->
+    <div class="alert alert-light border small text-muted text-center py-2 px-3 mb-4 rounded-3">
+      <i class="fa-solid fa-circle-check text-success me-1"></i>
+      Restricted to institutional <strong>@{{ domain }}</strong> accounts.
+    </div>
+
+    <form method="post" action="{{ url_for('register') }}">
+      <div class="auth-form-group">
+        <label class="form-label">Full Name</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-user"></i>
+          <input class="form-control" name="name" placeholder="e.g. Alex Johnson" required autofocus>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label class="form-label">College Email Address</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-envelope"></i>
+          <input class="form-control" type="email" name="email" placeholder="alex@{{ domain }}" required>
+        </div>
+      </div>
+
+      <div class="auth-form-group">
+        <label class="form-label">Password</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-lock"></i>
+          <input class="form-control" type="password" name="password" minlength="6" placeholder="At least 6 characters" required>
+        </div>
+        <div class="form-text">Must be at least 6 characters long.</div>
+      </div>
+
+      <button type="submit" class="btn btn-brand w-100 py-2 mt-3">
+        <i class="fa-solid fa-user-check me-1"></i> Complete Registration
+      </button>
+    </form>
+
+    <div class="text-center mt-4 pt-3 border-top">
+      <p class="small text-muted mb-0">
+        Already have a student account? <a href="{{ url_for('login') }}" class="fw-semibold">Sign in here</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

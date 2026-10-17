@@ -1,4 +1,88 @@
-{% extends "base.html" %}{% block body %}<h3 class="fw-bold">My Reports</h3><p class="text-muted">Track your submitted reports.</p>
-<div class="cardx table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Case ID</th><th>Item</th><th>Type</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody>
-{% for r in rows %}<tr><td>{{ r.case_id }}</td><td>{{ r.name }}</td><td>{{ r.type|capitalize }}</td><td>{{ r.created_at }}</td><td><span class="badge text-bg-{{ r.status|badge }}">{{ r.status }}</span></td><td><a href="{{ url_for('item', iid=r.id) }}">View</a></td></tr>
-{% else %}<tr><td colspan="6" class="text-center text-muted py-4">No reports yet. <a href="{{ url_for('report', kind='lost') }}">Report a lost item</a></td></tr>{% endfor %}</tbody></table></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}My Reports · CampusFind{% endblock %}
+
+{% block body %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h2 class="fw-bold mb-0">My Submissions</h2>
+      <span class="badge bg-light text-muted border rounded-pill px-3">{{ rows|length }} Total</span>
+    </div>
+    <p class="text-muted mb-0">Monitor the live status and resolution of items you reported lost or found.</p>
+  </div>
+  
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('report', kind='lost') }}" class="btn btn-brand btn-sm">
+      <i class="fa-solid fa-circle-question me-1"></i> Report Lost
+    </a>
+    <a href="{{ url_for('report', kind='found') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="fa-solid fa-hand-holding-heart me-1"></i> Report Found
+    </a>
+  </div>
+</div>
+
+<div class="table-card">
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Case ID</th>
+          <th>Item Title</th>
+          <th>Type</th>
+          <th>Submitted On</th>
+          <th>Current Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+          <tr>
+            <td>
+              <span class="font-monospace fw-semibold text-dark">{{ r.case_id }}</span>
+            </td>
+            <td>
+              <div class="fw-bold text-dark">{{ r.name }}</div>
+              <div class="small text-muted">{{ r.category }} · {{ r.location }}</div>
+            </td>
+            <td>
+              <span class="type-pill type-{{ r.type }}">
+                {{ r.type }}
+              </span>
+            </td>
+            <td>
+              <span class="text-muted small"><i class="fa-regular fa-calendar me-1"></i>{{ r.created_at }}</span>
+            </td>
+            <td>
+              <span class="status-badge badge-{{ r.status|replace(' ', '-') }}">
+                {{ r.status }}
+              </span>
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('item', iid=r.id) }}" class="btn btn-sm btn-outline-secondary">
+                <span>View Details</span>
+                <i class="fa-solid fa-chevron-right small ms-1"></i>
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" class="p-0">
+              <div class="empty-state">
+                <div class="empty-state-icon">
+                  <i class="fa-solid fa-clipboard-list"></i>
+                </div>
+                <h5 class="empty-state-title">No reports submitted yet</h5>
+                <p class="empty-state-text">You haven't filed any lost or found reports yet. If you've misplaced an item or found someone's belonging, start below.</p>
+                <a href="{{ url_for('report', kind='lost') }}" class="btn btn-brand">
+                  <i class="fa-solid fa-plus me-1"></i> Submit a Lost Item Report
+                </a>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

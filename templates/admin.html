@@ -1,5 +1,124 @@
-{% extends "base.html" %}{% block body %}<h3 class="fw-bold">Administration Overview</h3><p class="text-muted">Monitor reports, verify claims and manage recoveries.</p>
-<div class="row g-3 mb-4">{% for l,v in stats %}<div class="col-6 col-xl-3"><div class="cardx"><div class="stat">{{ v }}</div><div class="stat-l">{{ l }}</div></div></div>{% endfor %}</div>
-<h5>Cases requiring attention</h5><div class="cardx table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Case ID</th><th>Item</th><th>Type</th><th>Submitted</th><th>Status</th><th></th></tr></thead><tbody>
-{% for r in att %}<tr><td>{{ r.case_id }}</td><td>{{ r.name }}</td><td>{{ r.type|capitalize }}</td><td>{{ r.created_at }}</td><td><span class="badge text-bg-{{ r.status|badge }}">{{ r.status }}</span></td><td><a class="btn btn-sm btn-brand" href="{{ url_for('item', iid=r.id) }}">Review</a></td></tr>
-{% else %}<tr><td colspan="6" class="text-center text-muted py-4">Nothing needs attention right now.</td></tr>{% endfor %}</tbody></table></div>{% endblock %}
+{% extends "base.html" %}
+
+{% block title %}Admin Command Center · CampusFind{% endblock %}
+
+{% block body %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+  <div>
+    <div class="d-flex align-items-center gap-2 mb-1">
+      <h2 class="fw-bold mb-0">Campus Administration Overview</h2>
+      <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-3 py-1">
+        <i class="fa-solid fa-shield-halved small me-1"></i> Staff Authority
+      </span>
+    </div>
+    <p class="text-muted mb-0">Audit reports, verify student ownership claims, and oversee campus return operations.</p>
+  </div>
+  
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('admin_cases') }}" class="btn btn-brand btn-sm">
+      <i class="fa-solid fa-list-check me-1"></i> View All Cases
+    </a>
+  </div>
+</div>
+
+<!-- Key Campus Metrics Grid -->
+<div class="row g-3 mb-4">
+  {% for label, val in stats %}
+  <div class="col-6 col-md-4 col-xl-3">
+    <div class="stat-card">
+      <div>
+        <div class="stat-value">{{ val }}</div>
+        <div class="stat-label">{{ label }}</div>
+      </div>
+      <div class="stat-icon {% if 'Pending Reviews' in label %}warning{% elif 'Open' in label %}primary{% elif 'Pending Claims' in label %}info{% elif 'Ready' in label %}purple{% elif 'Recovered' in label or 'Rate' in label %}success{% elif 'Closed' in label %}danger{% else %}primary{% endif %}">
+        {% if 'Pending Reviews' in label %}
+          <i class="fa-solid fa-clipboard-question"></i>
+        {% elif 'Open' in label %}
+          <i class="fa-solid fa-box-open"></i>
+        {% elif 'Claims' in label %}
+          <i class="fa-solid fa-handshake"></i>
+        {% elif 'Ready' in label %}
+          <i class="fa-solid fa-person-walking-arrow-right"></i>
+        {% elif 'Recovered' in label %}
+          <i class="fa-solid fa-circle-check"></i>
+        {% elif 'Rate' in label %}
+          <i class="fa-solid fa-chart-pie"></i>
+        {% elif 'Closed' in label %}
+          <i class="fa-solid fa-box-archive"></i>
+        {% else %}
+          <i class="fa-solid fa-layer-group"></i>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Attention Required Queue -->
+<div class="table-card">
+  <div class="p-3 px-4 border-bottom bg-light d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-2">
+      <h5 class="fw-bold mb-0 text-dark">
+        <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Cases Requiring Staff Attention
+      </h5>
+      <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill font-monospace">
+        {{ att|length }} pending
+      </span>
+    </div>
+    <span class="text-muted small">Pending reviews &amp; unverified claims</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table-custom">
+      <thead>
+        <tr>
+          <th>Case ID</th>
+          <th>Item Title</th>
+          <th>Type</th>
+          <th>Submitted Time</th>
+          <th>Current Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in att %}
+          <tr>
+            <td>
+              <span class="font-monospace fw-semibold text-dark">{{ r.case_id }}</span>
+            </td>
+            <td>
+              <span class="fw-bold text-dark">{{ r.name }}</span>
+            </td>
+            <td>
+              <span class="type-pill type-{{ r.type }}">{{ r.type }}</span>
+            </td>
+            <td>
+              <span class="text-muted small"><i class="fa-regular fa-clock me-1"></i>{{ r.created_at }}</span>
+            </td>
+            <td>
+              <span class="status-badge badge-{{ r.status|replace(' ', '-') }}">{{ r.status }}</span>
+            </td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-brand" href="{{ url_for('item', iid=r.id) }}">
+                <i class="fa-solid fa-pen-to-square me-1"></i> Review Case
+              </a>
+            </td>
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="6" class="p-0">
+              <div class="empty-state">
+                <div class="empty-state-icon text-success" style="background: rgba(16, 185, 129, 0.1);">
+                  <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h5 class="empty-state-title">All caught up!</h5>
+                <p class="empty-state-text">There are no reports or claims requiring administrative review right now.</p>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
